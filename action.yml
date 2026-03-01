@@ -1,0 +1,31 @@
+
+name: 'ReleaseScribe – Conventional Commits → Changelog & Release'
+description: 'Generate CHANGELOG.md, bump SemVer, and create GitHub Releases from Conventional Commits.'
+author: 'Zero Nonsense Dev'
+branding:
+  icon: 'book-open'
+  color: 'blue'
+inputs:
+  release-type:
+    description: 'auto|patch|minor|major'
+    required: false
+    default: 'auto'
+  changelog-path:
+    description: 'Path to CHANGELOG.md'
+    required: false
+    default: 'CHANGELOG.md'
+  prev-tag:
+    description: 'Override previous tag (optional)'
+    required: false
+  next-tag:
+    description: 'Override next tag (optional, e.g., v1.2.3)'
+    required: false
+  github-token:
+    description: 'GitHub token'
+    required: false
+outputs:
+  next_version:
+    description: 'Calculated next version'
+runs:
+  using: 'node20'
+  main: 'dist/index.js'
