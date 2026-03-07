@@ -46,6 +46,7 @@ async function run() {
     const tags = await octokit.rest.repos.listTags({ owner, repo, per_page: 1 });
     const prevTag = core.getInput('prev-tag') || (tags.data[0]?.name ?? '');
     const nextTagInput = core.getInput('next-tag');
+    const dryRun = (core.getInput('dry-run') || 'false').toLowerCase() === 'true';
 
     const base = prevTag || (await octokit.rest.repos.get({ owner, repo })).data.default_branch;
     const head = 'HEAD';
@@ -55,6 +56,9 @@ async function run() {
 ')[0] }));
 
     let bump = core.getInput('release-type') as 'auto'|'patch'|'minor'|'major';
+    if (!['auto', 'patch', 'minor', 'major'].includes(bump)) {
+      throw new Error(`Invalid release-type: ${bump}. Must be auto, patch, minor, or major.`);
+    }
     if (bump === 'auto') bump = detectBump(commits.map((c) => c.msg));
 
     const prev = (prevTag?.replace(/^v/, '') || '0.0.0').split('.').map((n) => parseInt(n,10));
@@ -89,6 +93,13 @@ ${existing.replace(/^# Changelog\s*/, '')}`.trim() + '
 
     const path = core.getInput('changelog-path');
     const branch = (await octokit.rest.repos.get({ owner, repo })).data.default_branch;
+
+    if (dryRun) {
+      core.info(`Dry run: Would update ${path} with new section:\n${section}`);
+      core.info(`Dry run: Would create release ${nextVersion} with body:\n${section}`);
+      core.info(`Dry run: Next version: ${nextVersion}`);
+      return;
+    }
 
     await octokit.rest.repos.createOrUpdateFileContents({
       owner, repo, path,
