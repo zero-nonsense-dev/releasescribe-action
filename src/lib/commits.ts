@@ -1,4 +1,5 @@
 
+// @ts-ignore
 import { Octokit } from "@actions/github/lib/utils";
 import { CommitLite, ContextRef } from "../types.js";
 
@@ -13,28 +14,25 @@ export async function getLatestTag(octokit: InstanceType<typeof Octokit>, owner:
 }
 
 export async function compareWithFiles(
-  octokit: InstanceType<typeof Octokit>,
+  octokit: any,
   ref: ContextRef,
   base: string | undefined,
   head = 'HEAD'
 ): Promise<{ commits: CommitLite[]; files: string[]; shas: string[] }> {
   const _base = base || ref.defaultBranch;
   const cmp = await octokit.rest.repos.compareCommits({ owner: ref.owner, repo: ref.repo, base: _base, head });
-  const commits: CommitLite[] = cmp.data.commits.map(c => ({
+  const commits: CommitLite[] = cmp.data.commits.map((c: any) => ({
     sha: c.sha,
-    subject: c.commit.message.split('
-')[0],
-    body: c.commit.message.split('
-').slice(1).join('
-')
+    subject: c.commit.message.split('\n')[0],
+    body: c.commit.message.split('\n').slice(1).join('\n')
   }));
-  const files = (cmp.data.files || []).map(f => f.filename);
+  const files = (cmp.data.files || []).map((f: any) => f.filename);
   const shas = commits.map(c => c.sha);
   return { commits, files, shas };
 }
 
 export async function getFilesPerCommit(
-  octokit: InstanceType<typeof Octokit>,
+  octokit: any,
   owner: string,
   repo: string,
   shas: string[],
@@ -44,7 +42,7 @@ export async function getFilesPerCommit(
   const limited = shas.slice(0, cap);
   for (const sha of limited) {
     const c = await octokit.rest.repos.getCommit({ owner, repo, ref: sha });
-    map[sha] = (c.data.files || []).map(f => f.filename);
+    map[sha] = (c.data.files || []).map((f: any) => f.filename);
   }
   return map;
 }

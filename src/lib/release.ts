@@ -1,4 +1,5 @@
 
+// @ts-ignore
 import { Octokit } from "@actions/github/lib/utils";
 
 export async function createRelease(

@@ -1,4 +1,5 @@
 
+// @ts-ignore
 import { Octokit } from "@actions/github/lib/utils";
 
 export async function readFile(octokit: InstanceType<typeof Octokit>, owner: string, repo: string, path: string): Promise<{content?: string, sha?: string}> {

@@ -19,12 +19,8 @@ describe('changelog', () => {
     expect(section).toContain('### Other');
   });
   it('prepends to existing changelog', () => {
-    const section = '# Changelog
-
-## v1 - 2024-01-01';
+    const section = '# Changelog\n\n## v1 - 2024-01-01';
     const updated = prependToChangelog(undefined, section);
-    expect(updated.startsWith('# Changelog
-
-# Changelog')).toBe(false);
+    expect(updated.startsWith('# Changelog\n\n# Changelog')).toBe(false);
   });
 });
