@@ -9,6 +9,9 @@
     "build": "npx ncc build src/index.ts -o dist",
     "clean": "rm -rf dist",
     "test": "vitest run",
+    "test:watch": "vitest",
+    "dev:test": "tsx ../test-harness/local-run.ts",
+    "test": "vitest run",
     "prepare": "npm run build"
   },
   "dependencies": {
@@ -17,6 +20,10 @@
   },
   "devDependencies": {
     "@vercel/ncc": "^0.38.3",
+    "typescript": "^5.6.3",
+    "vitest": "^1.6.1",
+    "@types/node": "^20.12.7"
+    "tsx": "^4.7.0",
     "typescript": "^5.6.3",
     "vitest": "^1.6.1",
     "@types/node": "^20.12.7"
