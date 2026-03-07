@@ -1,0 +1,27 @@
+{
+  "breakingIndicators": [
+    "BREAKING CHANGE",
+    "BREAKING-CHANGE"
+  ],
+  "minorTypes": [
+    "feat"
+  ],
+  "patchTypes": [
+    "fix",
+    "perf",
+    "refactor"
+  ],
+  "otherTypes": [
+    "docs",
+    "chore",
+    "test",
+    "build",
+    "ci",
+    "revert"
+  ],
+  "scopesIgnored": [
+    "release",
+    "deps"
+  ],
+  "headerPattern": "^(\n|\r|\t|\\s)*(?P<type>[a-zA-Z]+)(\\((?P<scope>[^)]+)\\))?:(?P<subject>.*)$"
+}
