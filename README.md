@@ -28,6 +28,7 @@ jobs:
 - `release-type`: auto|patch|minor|major (default auto)
 - `changelog-path`: path for CHANGELOG.md (default CHANGELOG.md)
 - `prev-tag` / `next-tag`: manual overrides
+- `dry-run`: true|false (default false) - compute and log without modifying repo
 
 ## Outputs
 - `next_version`: computed tag (e.g., v1.2.3)
