@@ -20,18 +20,10 @@ function buildChangelog(version: string, commits: {sha:string;msg:string}[]) {
   }
   return [
     `## ${version} - ${new Date().toISOString().split('T')[0]}`,
-    sections.Features.length ? `### Features
-${sections.Features.join('
-')}` : '',
-    sections.Fixes.length ? `### Fixes
-${sections.Fixes.join('
-')}` : '',
-    sections.Other.length ? `### Other
-${sections.Other.join('
-')}` : ''
-  ].filter(Boolean).join('
-
-');
+    sections.Features.length ? `### Features\n${sections.Features.join('\n')}` : '',
+    sections.Fixes.length ? `### Fixes\n${sections.Fixes.join('\n')}` : '',
+    sections.Other.length ? `### Other\n${sections.Other.join('\n')}` : ''
+  ].filter(Boolean).join('\n\n');
 }
 
 async function run() {
@@ -52,8 +44,7 @@ async function run() {
     const head = 'HEAD';
     const compare = await octokit.rest.repos.compareCommits({ owner, repo, base, head });
 
-    const commits = compare.data.commits.map((c) => ({ sha: c.sha, msg: c.commit.message.split('
-')[0] }));
+    const commits = compare.data.commits.map((c) => ({ sha: c.sha, msg: c.commit.message.split('\n')[0] }));
 
     let bump = core.getInput('release-type') as 'auto'|'patch'|'minor'|'major';
     if (!['auto', 'patch', 'minor', 'major'].includes(bump)) {
@@ -84,12 +75,7 @@ async function run() {
       }
     } catch {}
 
-    const updated = `# Changelog
-
-${section}
-
-${existing.replace(/^# Changelog\s*/, '')}`.trim() + '
-';
+    const updated = `# Changelog\n\n${section}\n\n${existing.replace(/^# Changelog\s*/, '')}`.trim() + '\n';
 
     const path = core.getInput('changelog-path');
     const branch = (await octokit.rest.repos.get({ owner, repo })).data.default_branch;
