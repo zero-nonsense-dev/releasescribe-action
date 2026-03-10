@@ -1,0 +1,9 @@
+{
+  "apimName": "apim-releasescribe-prod",
+  "lawName": "law-releasescribe-prod",
+  "appiName": "appi-releasescribe-prod",
+  "storageName": "sareleasescribefn",
+  "planName": "asp-releasescribe-prod",
+  "funcName": "func-releasescribe-prod",
+  "kvName": "kv-releasescribe-prod"
+}
