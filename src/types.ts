@@ -10,3 +10,5 @@ export interface PresetConfig {
   scopesIgnored?: string[];
   headerPattern?: string;
 }
+
+export type OctokitClient = ReturnType<typeof import("@actions/github").getOctokit>;
