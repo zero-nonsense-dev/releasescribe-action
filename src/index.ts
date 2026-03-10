@@ -32,6 +32,7 @@ async function run() {
 
     const monorepo = (core.getInput('monorepo') || 'false').toLowerCase() === 'true';
     const packagesGlob = core.getInput('packages-glob') || 'packages/*';
+  const dryRun = (core.getInput('dry-run') || 'false').toLowerCase() === 'true';
 
     // Get commits + global files changed
     const lastTag = prevTagOverride ?? await getLatestTag(octokit, owner, repo);
@@ -57,6 +58,14 @@ async function run() {
     if (!monorepo) {
       // Single repo mode
       const section = buildSection(nextVersion, commits, preset);
+
+      if (dryRun) {
+        core.info(`Dry run: Would update ${changelogPath} with new section:\n${section}`);
+        core.info(`Dry run: Would create release ${nextVersion} with body:\n${section}`);
+        core.info(`Dry run: Next version: ${nextVersion}`);
+        return;
+      }
+
       const existing = await readFile(octokit, owner, repo, changelogPath);
       const updated = prependToChangelog(existing.content, section);
       await writeFile(octokit, owner, repo, ref.defaultBranch, changelogPath, updated, `chore(release): ${nextVersion} changelog`, existing.sha);
@@ -87,43 +96,19 @@ async function run() {
       for (const p of pkgs) {
         (packagesTouched[p] ||= []).push(c);
       }
-    } catch {}
-
-    const updated = `# Changelog\n\n${section}\n\n${existing.replace(/^# Changelog\s*/, '')}`.trim() + '\n';
-
-    const path = core.getInput('changelog-path');
-    const branch = (await octokit.rest.repos.get({ owner, repo })).data.default_branch;
-
-    if (dryRun) {
-      core.info(`Dry run: Would update ${path} with new section:\n${section}`);
-      core.info(`Dry run: Would create release ${nextVersion} with body:\n${section}`);
-      core.info(`Dry run: Next version: ${nextVersion}`);
-      return;
-    }
-
-    await octokit.rest.repos.createOrUpdateFileContents({
-      owner, repo, path,
-      message: `chore(release): ${nextVersion} changelog`,
-      content: Buffer.from(updated,'utf8').toString('base64'),
-      sha: existingSha,
-      branch
-    });
-
-    await octokit.rest.repos.createRelease({
-      owner, repo,
-      tag_name: nextVersion,
-      name: nextVersion,
-      body: section,
-      target_commitish: branch
-    });
-
-    core.info(`Released ${nextVersion}`);
     }
 
     const touchedNames = Object.keys(packagesTouched);
     if (touchedNames.length === 0) {
       core.info('Monorepo mode: no packages matched changes; falling back to root changelog.');
       const section = buildSection(nextVersion, commits, preset);
+
+      if (dryRun) {
+        core.info(`Dry run: Would update ${changelogPath} with new section:\n${section}`);
+        core.info(`Dry run: Would create release ${nextVersion} with body:\n${section}`);
+        return;
+      }
+
       const existing = await readFile(octokit, owner, repo, changelogPath);
       const updated = prependToChangelog(existing.content, section);
       await writeFile(octokit, owner, repo, ref.defaultBranch, changelogPath, updated, `chore(release): ${nextVersion} changelog`, existing.sha);
@@ -132,6 +117,12 @@ async function run() {
     }
 
     // Write per-package changelogs using the same nextVersion (global scheme)
+    if (dryRun) {
+      core.info(`Dry run: Monorepo mode would update ${touchedNames.length} package changelog(s): ${touchedNames.join(', ')}`);
+      core.info(`Dry run: Would update root ${changelogPath} and create release ${nextVersion}`);
+      return;
+    }
+
     for (const name of touchedNames) {
       const section = buildSection(nextVersion, packagesTouched[name], preset);
       const pkgChangelogPath = `${packagePrefix}${name}/CHANGELOG.md`;

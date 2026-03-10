@@ -1,19 +1,18 @@
 
-import { Octokit } from "@actions/github/lib/utils";
-import { CommitLite, ContextRef } from "../types.js";
+import { CommitLite, ContextRef, OctokitClient } from "../types.js";
 
-export async function getContextRef(octokit: InstanceType<typeof Octokit>, owner: string, repo: string): Promise<ContextRef> {
+export async function getContextRef(octokit: OctokitClient, owner: string, repo: string): Promise<ContextRef> {
   const r = await octokit.rest.repos.get({ owner, repo });
   return { owner, repo, defaultBranch: r.data.default_branch! };
 }
 
-export async function getLatestTag(octokit: InstanceType<typeof Octokit>, owner: string, repo: string): Promise<string | undefined> {
+export async function getLatestTag(octokit: OctokitClient, owner: string, repo: string): Promise<string | undefined> {
   const tags = await octokit.rest.repos.listTags({ owner, repo, per_page: 1 });
   return tags.data[0]?.name;
 }
 
 export async function compareWithFiles(
-  octokit: InstanceType<typeof Octokit>,
+  octokit: OctokitClient,
   ref: ContextRef,
   base: string | undefined,
   head = 'HEAD'
@@ -22,11 +21,8 @@ export async function compareWithFiles(
   const cmp = await octokit.rest.repos.compareCommits({ owner: ref.owner, repo: ref.repo, base: _base, head });
   const commits: CommitLite[] = cmp.data.commits.map(c => ({
     sha: c.sha,
-    subject: c.commit.message.split('
-')[0],
-    body: c.commit.message.split('
-').slice(1).join('
-')
+    subject: c.commit.message.split('\n')[0],
+    body: c.commit.message.split('\n').slice(1).join('\n')
   }));
   const files = (cmp.data.files || []).map(f => f.filename);
   const shas = commits.map(c => c.sha);
@@ -34,7 +30,7 @@ export async function compareWithFiles(
 }
 
 export async function getFilesPerCommit(
-  octokit: InstanceType<typeof Octokit>,
+  octokit: OctokitClient,
   owner: string,
   repo: string,
   shas: string[],

@@ -19,34 +19,18 @@ export function buildSection(version: string, commits: CommitLite[], preset: Pre
 
   const parts = [
     `## ${section.version} - ${section.dateISO}`,
-    section.features.length ? `### Features
-${section.features.join('
-')}` : '',
-    section.fixes.length ? `### Fixes
-${section.fixes.join('
-')}` : '',
-    section.others.length ? `### Other
-${section.others.join('
-')}` : ''
+    section.features.length ? `### Features\n${section.features.join('\n')}` : '',
+    section.fixes.length ? `### Fixes\n${section.fixes.join('\n')}` : '',
+    section.others.length ? `### Other\n${section.others.join('\n')}` : ''
   ].filter(Boolean);
 
-  return parts.join('
-
-');
+  return parts.join('\n\n');
 }
 
 export function prependToChangelog(existing: string | undefined, newSection: string): string {
+  const normalizedSection = newSection.replace(/^#\s*Changelog\s*\n?/i, '');
   const trimmed = (existing || '').replace(/^\s+|\s+$/g, '');
-  if (!trimmed) return `# Changelog
-
-${newSection}
-`;
-  const withoutTitle = trimmed.replace(/^#\s*Changelog\s*
-?/i, '');
-  return `# Changelog
-
-${newSection}
-
-${withoutTitle}
-`;
+  if (!trimmed) return `# Changelog\n\n${normalizedSection}\n`;
+  const withoutTitle = trimmed.replace(/^#\s*Changelog\s*\n?/i, '');
+  return `# Changelog\n\n${normalizedSection}\n\n${withoutTitle}\n`;
 }

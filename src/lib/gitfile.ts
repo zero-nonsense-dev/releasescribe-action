@@ -1,7 +1,7 @@
 
-import { Octokit } from "@actions/github/lib/utils";
+import { OctokitClient } from "../types.js";
 
-export async function readFile(octokit: InstanceType<typeof Octokit>, owner: string, repo: string, path: string): Promise<{content?: string, sha?: string}> {
+export async function readFile(octokit: OctokitClient, owner: string, repo: string, path: string): Promise<{content?: string, sha?: string}> {
   try {
     const file = await octokit.rest.repos.getContent({ owner, repo, path });
     if ('content' in file.data) {
@@ -15,7 +15,7 @@ export async function readFile(octokit: InstanceType<typeof Octokit>, owner: str
 }
 
 export async function writeFile(
-  octokit: InstanceType<typeof Octokit>, owner: string, repo: string, branch: string,
+  octokit: OctokitClient, owner: string, repo: string, branch: string,
   path: string, content: string, message: string, sha?: string
 ): Promise<void> {
   await octokit.rest.repos.createOrUpdateFileContents({
