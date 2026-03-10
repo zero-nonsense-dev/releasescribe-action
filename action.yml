@@ -1,35 +1,50 @@
 
-name: 'ReleaseScribe – Conventional Commits → Changelog & Release'
-description: 'Generate CHANGELOG.md, bump SemVer, and create GitHub Releases from Conventional Commits.'
-author: 'Zero Nonsense Dev'
+name: "ReleaseScribe – Conventional Commits → Changelog & Release"
+description: "Generate CHANGELOG.md, bump SemVer, and create GitHub Releases from Conventional Commits. Includes presets & monorepo mode."
+author: "Zero Nonsense Dev"
 branding:
-  icon: 'book-open'
-  color: 'blue'
+  icon: "book-open"
+  color: "blue"
 inputs:
   release-type:
-    description: 'auto|patch|minor|major'
+    description: "auto|patch|minor|major"
     required: false
-    default: 'auto'
+    default: "auto"
   changelog-path:
-    description: 'Path to CHANGELOG.md'
+    description: "Path to CHANGELOG.md"
     required: false
-    default: 'CHANGELOG.md'
+    default: "CHANGELOG.md"
   prev-tag:
-    description: 'Override previous tag (optional)'
+    description: "Override previous tag (optional)"
     required: false
   next-tag:
-    description: 'Override next tag (optional, e.g., v1.2.3)'
+    description: "Override next tag (optional, e.g., v1.2.3)"
     required: false
   dry-run:
     description: 'If true, compute and log changes without modifying files or creating releases'
     required: false
     default: 'false'
+  preset:
+    description: "Conventional preset id (e.g., conventional)"
+    required: false
+    default: "conventional"
+  preset-path:
+    description: "Path to custom preset JSON"
+    required: false
+  monorepo:
+    description: "Enable monorepo mode (true|false)"
+    required: false
+    default: "false"
+  packages-glob:
+    description: "Glob for packages (only used in monorepo mode)"
+    required: false
+    default: "packages/*"
   github-token:
-    description: 'GitHub token'
+    description: "GitHub token (defaults to GITHUB_TOKEN)"
     required: false
 outputs:
   next_version:
-    description: 'Calculated next version'
+    description: "Calculated next version (e.g., v1.2.3)"
 runs:
-  using: 'node20'
-  main: 'dist/index.js'
+  using: "node20"
+  main: "dist/index.js"
