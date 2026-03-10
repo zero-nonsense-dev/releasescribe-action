@@ -1,0 +1,49 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "check-azure-account",
+			"type": "shell",
+			"command": "az account show --query \"{name:name,id:id}\" -o table",
+			"isBackground": false
+		},
+		{
+			"label": "provision-azure-license-backend",
+			"type": "shell",
+			"command": "pwsh",
+			"args": [
+				"-File",
+				"scripts/provision-azure-backend.ps1"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "provision-azure-license-backend",
+			"type": "shell",
+			"command": "pwsh",
+			"args": [
+				"-File",
+				"scripts/provision-azure-backend.ps1"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "create-appinsights",
+			"type": "shell",
+			"command": "az monitor app-insights component create --app appi-releasescribe-2603101806-kchw --resource-group rg-github-actions-backend-prod --location westeurope --kind web --workspace /subscriptions/41ed14e3-32ad-413e-8c60-098816fb3742/resourceGroups/rg-github-actions-backend-prod/providers/Microsoft.OperationalInsights/workspaces/law-releasescribe-2603101806-kchw -o table",
+			"isBackground": false
+		},
+		{
+			"label": "create-storage",
+			"type": "shell",
+			"command": "az storage account create --name strelscribefn2603101806kc --resource-group rg-github-actions-backend-prod --location westeurope --sku Standard_LRS --kind StorageV2 --min-tls-version TLS1_2 --allow-blob-public-access false -o table",
+			"isBackground": false
+		},
+		{
+			"label": "create-storage-2",
+			"type": "shell",
+			"command": "az storage account create --subscription \"ZeroNonsense.Dev\" --name strelscribefn2603101812az --resource-group rg-github-actions-backend-prod --location westeurope --sku Standard_LRS --kind StorageV2 --min-tls-version TLS1_2 --allow-blob-public-access false -o table",
+			"isBackground": false
+		}
+	]
+}
