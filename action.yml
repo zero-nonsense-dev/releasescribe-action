@@ -20,6 +20,10 @@ inputs:
   next-tag:
     description: "Override next tag (optional, e.g., v1.2.3)"
     required: false
+  dry-run:
+    description: 'If true, compute and log changes without modifying files or creating releases'
+    required: false
+    default: 'false'
   preset:
     description: "Conventional preset id (e.g., conventional)"
     required: false

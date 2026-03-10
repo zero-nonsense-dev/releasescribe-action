@@ -4,7 +4,7 @@
   "private": false,
   "type": "module",
   "main": "dist/index.js",
-  "license": "MIT",
+  "license": "BUSL-1.1",
   "scripts": {
     "build": "npx ncc build src/index.ts -o dist --source-map",
     "clean": "rm -rf dist",

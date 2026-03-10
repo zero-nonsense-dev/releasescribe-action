@@ -87,6 +87,37 @@ async function run() {
       for (const p of pkgs) {
         (packagesTouched[p] ||= []).push(c);
       }
+    } catch {}
+
+    const updated = `# Changelog\n\n${section}\n\n${existing.replace(/^# Changelog\s*/, '')}`.trim() + '\n';
+
+    const path = core.getInput('changelog-path');
+    const branch = (await octokit.rest.repos.get({ owner, repo })).data.default_branch;
+
+    if (dryRun) {
+      core.info(`Dry run: Would update ${path} with new section:\n${section}`);
+      core.info(`Dry run: Would create release ${nextVersion} with body:\n${section}`);
+      core.info(`Dry run: Next version: ${nextVersion}`);
+      return;
+    }
+
+    await octokit.rest.repos.createOrUpdateFileContents({
+      owner, repo, path,
+      message: `chore(release): ${nextVersion} changelog`,
+      content: Buffer.from(updated,'utf8').toString('base64'),
+      sha: existingSha,
+      branch
+    });
+
+    await octokit.rest.repos.createRelease({
+      owner, repo,
+      tag_name: nextVersion,
+      name: nextVersion,
+      body: section,
+      target_commitish: branch
+    });
+
+    core.info(`Released ${nextVersion}`);
     }
 
     const touchedNames = Object.keys(packagesTouched);
