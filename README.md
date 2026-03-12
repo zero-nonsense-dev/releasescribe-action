@@ -3,7 +3,7 @@
 
 Generate `CHANGELOG.md`, bump SemVer, and create GitHub Releases from Conventional Commits.
 
-Commercial use note: production or paid usage requires a commercial license. See [Commercial Licensing](#commercial-licensing).
+Commercial licensing: for production or paid use, see [Commercial Licensing](#commercial-licensing).
 
 ## Quick Start
 ```yaml
@@ -45,13 +45,6 @@ transitions to Apache License 2.0.
 Licensing inquiries: opensource@zerononsense.dev
 
 ## Commercial Licensing
-To use ReleaseScribe in production or for commercial purposes, request a paid
-commercial license.
+Production and commercial use require a paid commercial license from Zero Nonsense Dev.
 
-Please include the following in your request:
-- Company name
-- Intended usage (internal, SaaS, on-prem, etc.)
-- Estimated repositories or workflows using this action
-- Desired support level and response time
-
-Contact: opensource@zerononsense.dev
+Contact: opensource@zerononsense.dev for terms and pricing.

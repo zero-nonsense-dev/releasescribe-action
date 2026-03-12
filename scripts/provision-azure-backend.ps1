@@ -145,10 +145,18 @@ function Get-OrInitState {
     [string]$WorkloadName
   )
 
+  if (Test-Path $Path) {
+    try {
+      return (Get-Content -Path $Path -Raw | ConvertFrom-Json)
+    } catch {
+      Write-Warning "State file is invalid JSON. Reinitializing state file at $Path"
+    }
+  }
+
   $wl = ($WorkloadName.ToLower() -replace "[^a-z0-9]", "")
   if (-not $wl) { $wl = "releasescribe" }
 
-  $rawKv = "kv-$wl-prod"
+  $rawKv = "kv-$wl-prod2"
   $rawStorage = "sa${wl}fn"
   if ($rawStorage.Length -gt 24) { $rawStorage = $rawStorage.Substring(0, 24) }
 
