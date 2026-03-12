@@ -39,6 +39,31 @@ inputs:
     description: "Glob for packages (only used in monorepo mode)"
     required: false
     default: "packages/*"
+  license-key:
+    description: "Paid license key (or set RELEASESCRIBE_LICENSE_KEY secret)"
+    required: false
+  license-api-url:
+    description: "License validation endpoint"
+    required: false
+    default: "https://api.releasescribe.dev/v1/licenses/validate"
+  license-fail-open:
+    description: "If true, continue when license validation cannot be completed"
+    required: false
+    default: "false"
+  execution-mode:
+    description: "local|remote (remote calls your core API for release planning)"
+    required: false
+    default: "local"
+  core-api-url:
+    description: "Remote core API endpoint used when execution-mode=remote"
+    required: false
+  core-api-token:
+    description: "Token for remote core API (recommended via secrets)"
+    required: false
+  core-api-timeout-ms:
+    description: "Timeout in milliseconds for remote core API requests"
+    required: false
+    default: "15000"
   github-token:
     description: "GitHub token (defaults to GITHUB_TOKEN)"
     required: false

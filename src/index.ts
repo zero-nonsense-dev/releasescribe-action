@@ -7,6 +7,8 @@ import { detectBump } from "./lib/bump.js";
 import { buildSection, prependToChangelog } from "./lib/changelog.js";
 import { readFile, writeFile } from "./lib/gitfile.js";
 import { createRelease } from "./lib/release.js";
+import { validateLicense } from "./lib/license.js";
+import { fetchRemoteReleasePlan } from "./lib/remote.js";
 import { Bump, CommitLite } from "./types.js";
 
 function unique<T>(arr: T[]): T[] { return Array.from(new Set(arr)); }
@@ -32,7 +34,45 @@ async function run() {
 
     const monorepo = (core.getInput('monorepo') || 'false').toLowerCase() === 'true';
     const packagesGlob = core.getInput('packages-glob') || 'packages/*';
-  const dryRun = (core.getInput('dry-run') || 'false').toLowerCase() === 'true';
+    const dryRun = (core.getInput('dry-run') || 'false').toLowerCase() === 'true';
+
+    const licenseKey = core.getInput('license-key') || process.env.RELEASESCRIBE_LICENSE_KEY || '';
+    const licenseApiUrl = core.getInput('license-api-url') || 'https://api.releasescribe.dev/v1/licenses/validate';
+    const licenseFailOpen = (core.getInput('license-fail-open') || 'false').toLowerCase() === 'true';
+
+    const executionMode = (core.getInput('execution-mode') || 'local').toLowerCase();
+    const coreApiUrl = core.getInput('core-api-url') || undefined;
+    const coreApiToken = core.getInput('core-api-token') || process.env.RELEASESCRIBE_CORE_API_TOKEN || undefined;
+    const coreApiTimeoutMs = parseInt(core.getInput('core-api-timeout-ms') || '15000', 10);
+
+    if (!licenseKey) {
+      if (!licenseFailOpen) {
+        throw new Error('Missing license-key input (or RELEASESCRIBE_LICENSE_KEY secret)');
+      }
+      core.warning('License key missing but license-fail-open=true, continuing without enforcement.');
+    } else {
+      try {
+        const license = await validateLicense({
+          apiUrl: licenseApiUrl,
+          licenseKey,
+          owner,
+          repo,
+          runId: process.env.GITHUB_RUN_ID,
+          workflow: process.env.GITHUB_WORKFLOW
+        });
+
+        if (!license.valid) {
+          const reason = license.reason ? ` (${license.reason})` : '';
+          if (!licenseFailOpen) {
+            throw new Error(`License validation failed${reason}`);
+          }
+          core.warning(`License validation failed${reason}. Continuing because license-fail-open=true.`);
+        }
+      } catch (err) {
+        if (!licenseFailOpen) throw err;
+        core.warning(`License validation request failed; continuing because license-fail-open=true: ${String(err)}`);
+      }
+    }
 
     // Get commits + global files changed
     const lastTag = prevTagOverride ?? await getLatestTag(octokit, owner, repo);
@@ -43,21 +83,52 @@ async function run() {
     // Parse scopes for commits according to preset pattern
     for (const c of commits) { c.scopes = parseScopes(c.subject, preset.headerPattern); }
 
-    // Decide bump (global) and compute next version
-    const bump: Bump = releaseTypeInput === 'auto' ? detectBump(commits, preset) : releaseTypeInput as Bump;
-    const prev = ((lastTag ?? '').replace(/^v/, '') || '0.0.0').split('.').map(n => parseInt(n,10));
-    let [maj, min, pat] = (Number.isFinite(prev[0]) ? prev : [0,0,0]) as number[];
-    if (nextTagOverride) {
-      // use override
-    } else if (bump === 'major') { maj++; min = 0; pat = 0; }
-      else if (bump === 'minor') { min++; pat = 0; }
-      else { pat++; }
-    const nextVersion = nextTagOverride || `v${maj}.${min}.${pat}`;
+    let nextVersion = '';
+    let rootSection = '';
+    let remotePackageSections: Record<string, string> | undefined;
+
+    if (executionMode === 'remote') {
+      if (!coreApiUrl) throw new Error('execution-mode=remote requires core-api-url');
+
+      const remotePlan = await fetchRemoteReleasePlan(coreApiUrl, coreApiToken, {
+        owner,
+        repo,
+        defaultBranch: ref.defaultBranch,
+        lastTag,
+        nextTagOverride,
+        releaseType: releaseTypeInput,
+        monorepo,
+        packagesGlob,
+        commits,
+        files
+      }, coreApiTimeoutMs);
+
+      nextVersion = nextTagOverride || remotePlan.nextVersion;
+      rootSection = remotePlan.rootSection;
+      remotePackageSections = remotePlan.packageSections;
+    } else {
+      // Local mode computes release plan inside the action.
+      const bump: Bump = releaseTypeInput === 'auto' ? detectBump(commits, preset) : releaseTypeInput as Bump;
+      const prev = ((lastTag ?? '').replace(/^v/, '') || '0.0.0').split('.').map(n => parseInt(n,10));
+      let [maj, min, pat] = (Number.isFinite(prev[0]) ? prev : [0,0,0]) as number[];
+      if (nextTagOverride) {
+        // use override
+      } else if (bump === 'major') {
+        maj++; min = 0; pat = 0;
+      } else if (bump === 'minor') {
+        min++; pat = 0;
+      } else {
+        pat++;
+      }
+      nextVersion = nextTagOverride || `v${maj}.${min}.${pat}`;
+      rootSection = buildSection(nextVersion, commits, preset);
+    }
+
     core.setOutput('next_version', nextVersion);
 
     if (!monorepo) {
       // Single repo mode
-      const section = buildSection(nextVersion, commits, preset);
+      const section = rootSection;
 
       if (dryRun) {
         core.info(`Dry run: Would update ${changelogPath} with new section:\n${section}`);
@@ -71,6 +142,29 @@ async function run() {
       await writeFile(octokit, owner, repo, ref.defaultBranch, changelogPath, updated, `chore(release): ${nextVersion} changelog`, existing.sha);
       await createRelease(octokit, owner, repo, nextVersion, nextVersion, section, ref.defaultBranch);
       core.info(`Released ${nextVersion}`);
+      return;
+    }
+
+    if (executionMode === 'remote' && remotePackageSections) {
+      if (dryRun) {
+        core.info(`Dry run: Remote mode would update ${Object.keys(remotePackageSections).length} package changelog(s).`);
+        core.info(`Dry run: Would update root ${changelogPath} and create release ${nextVersion}`);
+        return;
+      }
+
+      for (const [pkg, section] of Object.entries(remotePackageSections)) {
+        const packagePrefix = packagesGlob.split('*')[0];
+        const pkgChangelogPath = `${packagePrefix}${pkg}/CHANGELOG.md`;
+        const existing = await readFile(octokit, owner, repo, pkgChangelogPath);
+        const updated = prependToChangelog(existing.content, section);
+        await writeFile(octokit, owner, repo, ref.defaultBranch, pkgChangelogPath, updated, `chore(${pkg}): ${nextVersion} changelog`, existing.sha);
+      }
+
+      const existingRoot = await readFile(octokit, owner, repo, changelogPath);
+      const updatedRoot = prependToChangelog(existingRoot.content, rootSection);
+      await writeFile(octokit, owner, repo, ref.defaultBranch, changelogPath, updatedRoot, `chore(release): ${nextVersion} changelog`, existingRoot.sha);
+      await createRelease(octokit, owner, repo, nextVersion, nextVersion, rootSection, ref.defaultBranch);
+      core.info(`Released ${nextVersion} (remote mode; package sections applied)`);
       return;
     }
 
@@ -101,7 +195,7 @@ async function run() {
     const touchedNames = Object.keys(packagesTouched);
     if (touchedNames.length === 0) {
       core.info('Monorepo mode: no packages matched changes; falling back to root changelog.');
-      const section = buildSection(nextVersion, commits, preset);
+      const section = rootSection;
 
       if (dryRun) {
         core.info(`Dry run: Would update ${changelogPath} with new section:\n${section}`);
@@ -132,7 +226,7 @@ async function run() {
     }
 
     // Also update root changelog with a summary
-    const summarySection = buildSection(nextVersion, commits, preset);
+    const summarySection = rootSection;
     const existingRoot = await readFile(octokit, owner, repo, changelogPath);
     const updatedRoot = prependToChangelog(existingRoot.content, summarySection);
     await writeFile(octokit, owner, repo, ref.defaultBranch, changelogPath, updatedRoot, `chore(release): ${nextVersion} changelog`, existingRoot.sha);
