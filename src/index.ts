@@ -7,7 +7,6 @@ import { detectBump } from "./lib/bump.js";
 import { buildSection, prependToChangelog } from "./lib/changelog.js";
 import { readFile, writeFile } from "./lib/gitfile.js";
 import { createRelease } from "./lib/release.js";
-import { validateLicense } from "./lib/license.js";
 import { fetchRemoteReleasePlan } from "./lib/remote.js";
 import { Bump, CommitLite } from "./types.js";
 
@@ -36,43 +35,10 @@ async function run() {
     const packagesGlob = core.getInput('packages-glob') || 'packages/*';
     const dryRun = (core.getInput('dry-run') || 'false').toLowerCase() === 'true';
 
-    const licenseKey = core.getInput('license-key') || process.env.RELEASESCRIBE_LICENSE_KEY || '';
-    const licenseApiUrl = core.getInput('license-api-url') || 'https://api.releasescribe.dev/v1/licenses/validate';
-    const licenseFailOpen = (core.getInput('license-fail-open') || 'false').toLowerCase() === 'true';
-
     const executionMode = (core.getInput('execution-mode') || 'local').toLowerCase();
     const coreApiUrl = core.getInput('core-api-url') || undefined;
     const coreApiToken = core.getInput('core-api-token') || process.env.RELEASESCRIBE_CORE_API_TOKEN || undefined;
     const coreApiTimeoutMs = parseInt(core.getInput('core-api-timeout-ms') || '15000', 10);
-
-    if (!licenseKey) {
-      if (!licenseFailOpen) {
-        throw new Error('Missing license-key input (or RELEASESCRIBE_LICENSE_KEY secret)');
-      }
-      core.warning('License key missing but license-fail-open=true, continuing without enforcement.');
-    } else {
-      try {
-        const license = await validateLicense({
-          apiUrl: licenseApiUrl,
-          licenseKey,
-          owner,
-          repo,
-          runId: process.env.GITHUB_RUN_ID,
-          workflow: process.env.GITHUB_WORKFLOW
-        });
-
-        if (!license.valid) {
-          const reason = license.reason ? ` (${license.reason})` : '';
-          if (!licenseFailOpen) {
-            throw new Error(`License validation failed${reason}`);
-          }
-          core.warning(`License validation failed${reason}. Continuing because license-fail-open=true.`);
-        }
-      } catch (err) {
-        if (!licenseFailOpen) throw err;
-        core.warning(`License validation request failed; continuing because license-fail-open=true: ${String(err)}`);
-      }
-    }
 
     // Get commits + global files changed
     const lastTag = prevTagOverride ?? await getLatestTag(octokit, owner, repo);
